@@ -41,6 +41,7 @@ public class EntityIdStoreImpl implements EntityIdStore {
             cache.put(new Element(threadId, new LinkedList<Long>()));
         }
 
+        log.debug("cache("+threadId+")="+cache.get(threadId));
         @SuppressWarnings("unchecked")
         LinkedList<Long> list = (LinkedList<Long>)cache.get(threadId).getObjectValue();
 
