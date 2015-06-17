@@ -22,7 +22,7 @@ import com.redhat.lightblue.client.expression.query.ValueQuery;
 import com.redhat.lightblue.client.projection.FieldProjection;
 import com.redhat.lightblue.client.request.data.DataFindRequest;
 
-public class TestLightblueOutboundPollingRoute extends CamelTestSupport {
+public class TestLightblueEventConsumerRoute extends CamelTestSupport {
 
     @BeforeClass
     public static void prepareMetadataDatasources() {
@@ -54,7 +54,7 @@ public class TestLightblueOutboundPollingRoute extends CamelTestSupport {
                 findRequest.where(ValueQuery.withValue("processed = false"));
                 findRequest.select(FieldProjection.includeFieldRecursively("*"));
 
-                from("lightblue://outboundPollingTest" + LightblueEndpoint.buildUriParameters(findRequest, true))
+                from("lightblue://outboundPollingTest" + LightblueEndpoint.buildUriParameters(findRequest))
                         .bean(new LightblueErrorVerifier())
                         .bean(new LightblueResponseTransformer<Event[]>(Event[].class))
                         .marshal(new JacksonXmlDataFormat())

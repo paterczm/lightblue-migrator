@@ -9,7 +9,7 @@ import com.redhat.lightblue.client.response.LightblueResponse;
 /**
  * The Lightblue consumer.
  */
-public class LightblueEntityPollingConsumer extends ScheduledPollConsumer implements LightblueConsumerWithSetters {
+public class LightblueEventConsumer extends ScheduledPollConsumer implements LightblueConsumerWithSetters {
 
     private final LightblueEndpoint endpoint;
     private String entityName;
@@ -57,7 +57,7 @@ public class LightblueEntityPollingConsumer extends ScheduledPollConsumer implem
         this.body = body;
     }
 
-    public LightblueEntityPollingConsumer(LightblueEndpoint endpoint, Processor processor) {
+    public LightblueEventConsumer(LightblueEndpoint endpoint, Processor processor) {
         super(endpoint, processor);
         this.endpoint = endpoint;
     }
@@ -67,7 +67,7 @@ public class LightblueEntityPollingConsumer extends ScheduledPollConsumer implem
         Exchange exchange = endpoint.createExchange();
 
         // create a message body
-        LightblueResponse response = LightblueEntityConsumer.callLightblue(
+        LightblueResponse response = LightblueProducer.callLightblue(
                 endpoint.getLightblueClient(), getEntityName(), getEntityVersion(), getOperation(), getBody());
         exchange.getIn().setBody(response);
         try {
