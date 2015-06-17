@@ -1,5 +1,7 @@
 package com.redhat.lightblue.camel;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,7 +26,7 @@ import com.redhat.lightblue.client.request.data.DataUpdateRequest;
 /**
  * Represents a Lightblue endpoint.
  */
-@UriEndpoint(scheme = "lightblue", title = "Lightblue", syntax = "lightblue:name", consumerClass = LightblueEntityPollingConsumer.class, label = "Lightblue")
+@UriEndpoint(scheme = "lightblue", title = "Lightblue", syntax = "lightblue:name", consumerClass = LightblueEventConsumer.class, label = "Lightblue")
 public class LightblueEndpoint extends DefaultEndpoint {
 
     /**
@@ -45,9 +47,6 @@ public class LightblueEndpoint extends DefaultEndpoint {
     @Metadata(required = "true")
     private String request;
 
-    @UriParam(defaultValue = "false")
-    private boolean pollMode;
-
     public static void registerLightblueClient(String hostname, LightblueClient lightblueClient) {
         registeredClients.put(hostname, lightblueClient);
     }
@@ -56,7 +55,7 @@ public class LightblueEndpoint extends DefaultEndpoint {
         return registeredClients.get(hostname);
     }
 
-    public static String buildUriParameters(AbstractLightblueDataRequest request, boolean isPollModeEnabled) {
+    public static String buildUriParameters(AbstractLightblueDataRequest request) {
         StringBuffer builder = new StringBuffer("?");
 
         //TODO Not ideal, find better way.
@@ -85,10 +84,12 @@ public class LightblueEndpoint extends DefaultEndpoint {
         if (!StringUtils.isEmpty(request.getEntityVersion())) {
             builder.append("entityVersion=").append(request.getEntityVersion()).append("&");
         }
-        if (isPollModeEnabled) {
-            builder.append("pollMode=").append("true").append("&");
+        // @TODO: refactor this
+        try {
+            builder.append("request=").append(URLEncoder.encode(request.getBody(), "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        builder.append("request=").append(request.getBody());
 
         return builder.toString();
     }
@@ -101,19 +102,17 @@ public class LightblueEndpoint extends DefaultEndpoint {
 
     @Override
     public Producer createProducer() throws Exception {
-        return new LightblueProducer(this);
+        LightblueProducer producer = new LightblueProducer(this);
+        producer.setEntityName(getEntityName());
+        producer.setEntityVersion(getEntityVersion());
+        producer.setOperation(getOperation());
+        producer.setBody(getRequest());
+        return producer;
     }
 
     @Override
     public LightblueConsumer createConsumer(Processor processor) throws Exception {
-        LightblueConsumerWithSetters consumer;
-        if (isPollModeEnabled()) {
-            consumer = new LightblueEntityPollingConsumer(this, processor);
-        }
-        else {
-            consumer = new LightblueEntityConsumer(this, processor);
-        }
-
+        LightblueConsumerWithSetters consumer = new LightblueEventConsumer(this, processor);
         consumer.setEntityName(getEntityName());
         consumer.setEntityVersion(getEntityVersion());
         consumer.setOperation(getOperation());
@@ -171,15 +170,4 @@ public class LightblueEndpoint extends DefaultEndpoint {
     public void setRequest(String request) {
         this.request = request;
     }
-
-    @ManagedAttribute(description = "Poll Mode: if enabled consumer will poll for data, otherwise single execution")
-    public boolean isPollModeEnabled() {
-        return pollMode;
-    }
-
-    @ManagedAttribute(description = "Poll Mode: if enabled consumer will poll for data, otherwise single execution")
-    public void setPollMode(boolean pollMode) {
-        this.pollMode = pollMode;
-    }
-
 }
