@@ -6,14 +6,14 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.redhat.lightblue.migrator.facade.EntityIdStoreImpl;
+import com.redhat.lightblue.migrator.facade.EntityStoreImpl;
 import com.redhat.lightblue.migrator.facade.model.Country;
 
-public class EntityIdStoreImplTest {
+public class EntityStoreImplTest {
 
     @Test
     public void testSingle() {
-        EntityIdStoreImpl store = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
 
         store.push(101l);
         Assert.assertEquals((Long)101l, store.pop());
@@ -21,7 +21,7 @@ public class EntityIdStoreImplTest {
 
     @Test
     public void testList() {
-        EntityIdStoreImpl store = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
 
         store.push(101l);
         store.push(102l);
@@ -33,8 +33,8 @@ public class EntityIdStoreImplTest {
 
     @Test
     public void testDifferentCaches() {
-        EntityIdStoreImpl store1 = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
-        EntityIdStoreImpl store2 = new EntityIdStoreImpl(Country.class);
+        EntityStore store1 = new EntityStoreImpl(EntityStoreImplTest.class);
+        EntityStore store2 = new EntityStoreImpl(Country.class);
 
         store1.push(101l);
         store1.push(102l);
@@ -48,13 +48,13 @@ public class EntityIdStoreImplTest {
 
     @Test(expected=RuntimeException.class)
     public void noId() {
-        EntityIdStoreImpl store = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
         store.pop();
     }
 
     @Test(expected=RuntimeException.class)
     public void noId2() {
-        EntityIdStoreImpl store = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
         store.push(1l);
         store.pop();
         store.pop();
@@ -62,7 +62,7 @@ public class EntityIdStoreImplTest {
 
     @Test
     public void testCopy() {
-        EntityIdStoreImpl store = new EntityIdStoreImpl(EntityIdStoreImplTest.class);
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
 
         store.push(101l);
         store.push(102l);
@@ -81,13 +81,26 @@ public class EntityIdStoreImplTest {
 
     }
 
+    @Test
+    public void testObject() {
+        EntityStore store = new EntityStoreImpl(EntityStoreImplTest.class);
+
+        store.push("foo");
+        store.push("bar");
+        store.push("foobar");
+
+        Assert.assertEquals("foo", store.pop());
+        Assert.assertEquals("bar", store.pop());
+        Assert.assertEquals("foobar", store.pop());
+    }
+
     class TestThread extends Thread {
 
-        private EntityIdStore store;
+        private EntityStore store;
         private Long parentThreadId;
         private boolean checksPassed = false;
 
-        public TestThread(EntityIdStore store, Long parentThreadId) {
+        public TestThread(EntityStore store, Long parentThreadId) {
             super();
             this.store = store;
             this.parentThreadId = parentThreadId;
@@ -97,7 +110,7 @@ public class EntityIdStoreImplTest {
         public void run() {
             store.copyFromThread(parentThreadId);
 
-            checksPassed = 101l == store.pop() && 102l == store.pop() && 103l == store.pop();
+            checksPassed = 101l == (Long)store.pop() && 102l == (Long)store.pop() && 103l == (Long)store.pop();
         }
 
         public boolean isChecksPassed() {

@@ -48,7 +48,7 @@ public class DAOFacadeBase<D> {
 
     protected final D legacyDAO, lightblueDAO;
 
-    private EntityIdStore entityIdStore = null;
+    private EntityStore entityStore = null;
 
     private Map<Class<?>,ModelMixIn> modelMixIns;
 
@@ -57,18 +57,18 @@ public class DAOFacadeBase<D> {
     // used to associate inconsistencies with the service in the logs
     private final String implementationName;
 
-    public EntityIdStore getEntityIdStore() {
-        return entityIdStore;
+    public EntityStore getEntityStore() {
+        return entityStore;
     }
 
-    public void setEntityIdStore(EntityIdStore entityIdStore) {
-        this.entityIdStore = entityIdStore;
+    public void setEntityStore(EntityStore entityStore) {
+        this.entityStore = entityStore;
 
         try {
-            Method method = lightblueDAO.getClass().getMethod("setEntityIdStore", EntityIdStore.class);
-            method.invoke(lightblueDAO, entityIdStore);
+            Method method = lightblueDAO.getClass().getMethod("setEntityStore", EntityStore.class);
+            method.invoke(lightblueDAO, entityStore);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException("LightblueDAO needs to have a setter method for EntityIdStore", e);
+            throw new RuntimeException("LightblueDAO needs to have a setter method for EntityStore", e);
         }
     }
 
@@ -76,7 +76,7 @@ public class DAOFacadeBase<D> {
         super();
         this.legacyDAO = legacyDAO;
         this.lightblueDAO = lightblueDAO;
-        setEntityIdStore(new EntityIdStoreImpl(this.getClass())); // this.getClass() will point at superclass
+        setEntityStore(new EntityStoreImpl(this.getClass())); // this.getClass() will point at superclass
         this.implementationName = this.getClass().getSimpleName();
         log.info("Initialized facade for "+implementationName);
     }
@@ -203,7 +203,7 @@ public class DAOFacadeBase<D> {
             public T call() throws Exception {
                 Timer dest = new Timer("destination."+method.getName());
                 if (passIds)
-                    entityIdStore.copyFromThread(parentThreadId);
+                    entityStore.copyFromThread(parentThreadId);
                 try {
                     return (T) method.invoke(lightblueDAO, values);
                 } finally {
@@ -420,7 +420,7 @@ public class DAOFacadeBase<D> {
      * @return Object returned by dao
      * @throws Exception
      */
-    public <T> T callDAOCreateSingleMethod(final EntityIdExtractor<T> entityIdExtractor, final Class<T> returnedType, final String methodName, final Class[] types, final Object ... values) throws Throwable {
+    public <T> T callDAOCreateSingleMethod(final Class<T> returnedType, final String methodName, final Class[] types, final Object ... values) throws Throwable {
         if (log.isDebugEnabled())
             log.debug("Creating "+(returnedType!=null?returnedType.getName():"")+" "+methodCallToString(methodName, values));
         TogglzRandomUsername.init();
@@ -445,12 +445,15 @@ public class DAOFacadeBase<D> {
             log.debug("."+methodName+" creating in lightblue");
 
             // don't attempt to pass ids when entity returned from legacy is null
-            boolean passIds = entityIdStore != null && legacyEntity != null;
+            boolean passIds = entityStore != null && legacyEntity != null;
 
             try {
                 if (passIds) {
-                    Long id = entityIdExtractor.extractId(legacyEntity);
-                    entityIdStore.push(id);
+                    entityStore.push(legacyEntity);
+                }
+
+                if (entityStore == null && legacyEntity != null) {
+
                 }
             } catch (Exception e) {
                 log.warn("Error when calling lightblue DAO. Returning data from legacy.", e);
@@ -465,7 +468,7 @@ public class DAOFacadeBase<D> {
                 lightblueEntity = getWithTimeout(listenableFuture);
             } catch (ExecutionException ee) {
                 if (LightblueMigration.shouldReadSourceEntity()) {
-                    EntityIdStoreException se = extractEntityIdStoreExceptionIfExists(ee);
+                    EntityStoreException se = extractEntityIdStoreExceptionIfExists(ee);
                     if (se != null && !passIds) {
                         log.warn("Possible data inconsistency in a create-if-not-exists scenario (entity exists in legacy, but does not in lightblue). Method called: "
                                 + methodCallToString(methodName, values), se);
@@ -512,10 +515,10 @@ public class DAOFacadeBase<D> {
         return lightblueEntity != null ? lightblueEntity : legacyEntity;
     }
 
-    private EntityIdStoreException extractEntityIdStoreExceptionIfExists(ExecutionException ee) {
+    private EntityStoreException extractEntityIdStoreExceptionIfExists(ExecutionException ee) {
         try {
-            if (ee.getCause().getCause() instanceof EntityIdStoreException) {
-                return (EntityIdStoreException)ee.getCause().getCause();
+            if (ee.getCause().getCause() instanceof EntityStoreException) {
+                return (EntityStoreException)ee.getCause().getCause();
             } else {
                 return null;
             }

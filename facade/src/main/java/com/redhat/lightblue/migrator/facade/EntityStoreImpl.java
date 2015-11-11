@@ -12,31 +12,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * EntityIdStore implementation using ehcache. Creates a cache object per dao and uses thread id as key to avoid conflicts.
+ * EntityStore implementation using ehcache. Creates a cache object per dao and uses thread id as key to avoid conflicts.
  * There is an assumption that both legacy and destination daos create entities in the same order.
- *
- * TODO: ehcache.xml will need to be optimized to minimize overhead.
  *
  * @author mpatercz
  *
  */
-public class EntityIdStoreImpl implements EntityIdStore {
+public class EntityStoreImpl implements EntityStore {
 
-    private static final Logger log = LoggerFactory.getLogger(EntityIdStoreImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(EntityStoreImpl.class);
 
     // singleton
     private CacheManager cacheManager;
     private Cache cache;
 
-    public EntityIdStoreImpl(Class<?> daoClass) {
+    public EntityStoreImpl(Class<?> daoClass) {
         this(daoClass, null);
     }
 
-    public EntityIdStoreImpl(Class<?> daoClass, URL ehcacheConfigFile) {
+    public EntityStoreImpl(Class<?> daoClass, URL ehcacheConfigFile) {
         log.debug("Initializing id cache for "+daoClass.getCanonicalName());
 
         if (ehcacheConfigFile == null)
-            cacheManager = CacheManager.create(EntityIdStoreImpl.class.getResourceAsStream("/ehcache.xml"));
+            cacheManager = CacheManager.create(EntityStoreImpl.class.getResourceAsStream("/ehcache.xml"));
         else
             cacheManager = CacheManager.create(ehcacheConfigFile);
 
@@ -45,35 +43,35 @@ public class EntityIdStoreImpl implements EntityIdStore {
     }
 
     @Override
-    public void push(Long id) {
+    public void push(Object obj) {
         long threadId = Thread.currentThread().getId();
         if(log.isDebugEnabled())
-            log.debug("Storing id="+id+" for "+cache.getName()+", thread="+threadId);
+            log.debug("Storing obj="+obj+" for "+cache.getName()+", thread="+threadId);
 
         Element el = cache.get(threadId);
-        LinkedList<Long> list;
+        LinkedList<Object> list;
 
         if (el == null) {
-            list = new LinkedList<Long>();
+            list = new LinkedList<Object>();
         }
         else {
-            list = (LinkedList<Long>)el.getObjectValue();
+            list = (LinkedList<Object>)el.getObjectValue();
         }
 
-        list.add(id);
+        list.add(obj);
 
         cache.put(new Element(threadId, list));
     }
 
     @Override
-    public Long pop() {
+    public Object pop() {
         long threadId = Thread.currentThread().getId();
         log.debug("Restoring id for "+cache.getName()+" thread="+threadId);
 
         Element el = cache.get(threadId);
 
         if (el == null) {
-            throw new EntityIdStoreException(cache.getName(), threadId);
+            throw new EntityStoreException(cache.getName(), threadId);
         }
 
         @SuppressWarnings("unchecked")
@@ -82,7 +80,7 @@ public class EntityIdStoreImpl implements EntityIdStore {
         try {
             return list.removeFirst();
         } catch (NoSuchElementException e) {
-            throw new EntityIdStoreException(cache.getName(), threadId);
+            throw new EntityStoreException(cache.getName(), threadId);
         }
     }
 
@@ -94,7 +92,7 @@ public class EntityIdStoreImpl implements EntityIdStore {
         Element sourceEl = cache.get(sourceThreadId);
 
         if (sourceEl == null) {
-            throw new EntityIdStoreException(cache.getName(), sourceThreadId);
+            throw new EntityStoreException(cache.getName(), sourceThreadId);
         }
 
         @SuppressWarnings("unchecked")

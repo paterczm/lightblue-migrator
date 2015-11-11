@@ -1,17 +1,17 @@
 package com.redhat.lightblue.migrator.facade;
 
 /**
- * A FIFO queue. Used to pass IDs to create apis in Lightblue DAO without changing the signatures.
+ * A FIFO queue. Used to pass IDs and other objects to create apis in Lightblue DAO without changing the signatures.
  *
  *
  * @author mpatercz
  *
  */
-public interface EntityIdStore {
+public interface EntityStore {
 
-    public void push(Long id);
+    public void push(Object obj);
 
-    public Long pop();
+    public Object pop();
 
     /**
      * Copy all key-value pairs from one thread to the other.

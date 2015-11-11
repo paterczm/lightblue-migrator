@@ -37,7 +37,7 @@ public class DAOFacadeTest {
 
         // countryDAO is daoFacade using CountryDAO interface to invoke methods
         countryDAO = FacadeProxyFactory.createFacadeProxy(daoFacade, CountryDAO.class);
-        Mockito.verify(lightblueDAO).setEntityIdStore((daoFacade).getEntityIdStore());
+        Mockito.verify(lightblueDAO).setEntityStore((daoFacade).getEntityStore());
     }
 
     @After
@@ -233,7 +233,7 @@ public class DAOFacadeTest {
         Mockito.verify(daoFacade).checkConsistency(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString());
 
         // CountryDAOLightblue should set the id. Since it's just a mock, I'm checking what's in the cache.
-        Assert.assertTrue(101l == (Long)daoFacade.getEntityIdStore().pop());
+        Assert.assertTrue(101l == ((Country)daoFacade.getEntityStore().pop()).getId());
     }
 
     @Test
@@ -253,7 +253,7 @@ public class DAOFacadeTest {
         Mockito.verify(daoFacade).checkConsistency(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString());
 
         // CountryDAOLightblue should set the id. Since it's just a mock, I'm checking what's in the cache.
-        Assert.assertTrue(101l == (Long) daoFacade.getEntityIdStore().pop());
+        Assert.assertTrue(101l == ((Country) daoFacade.getEntityStore().pop()).getId());
 
         Assert.assertEquals(pl.getIso2Code(), "PL");
     }
@@ -263,8 +263,8 @@ public class DAOFacadeTest {
         LightblueMigrationPhase.lightblueProxyPhase(togglzRule);
 
         // lightblue will handle ID generation in this phase
-        daoFacade.setEntityIdStore(null);
-        Mockito.verify(lightblueDAO).setEntityIdStore(null);
+        daoFacade.setEntityStore(null);
+        Mockito.verify(lightblueDAO).setEntityStore(null);
 
         Country pl = new Country("PL");
 
@@ -308,7 +308,7 @@ public class DAOFacadeTest {
         Mockito.verify(daoFacade).checkConsistency(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString());
 
         // CountryDAOLightblue should set the id. Since it's just a mock, I'm checking what's in the cache.
-        Assert.assertTrue(101l == (Long)daoFacade.getEntityIdStore().pop());
+        Assert.assertTrue(101l == ((Country)daoFacade.getEntityStore().pop()).getId());
     }
 
     @Test

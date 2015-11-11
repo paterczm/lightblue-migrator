@@ -9,10 +9,10 @@ import com.redhat.lightblue.migrator.facade.proxy.FacadeProxyFactory.WriteSingle
 
 public interface CountryDAO {
 
-    @WriteSingleOperation(entityIdExtractorClass = CountryIdExtractor.class)
+    @WriteSingleOperation
     public abstract Country createCountry(Country country) throws CountryException;
 
-    @WriteSingleOperation(entityIdExtractorClass = CountryIdExtractor.class)
+    @WriteSingleOperation
     public abstract Country createCountryIfNotExists(Country country) throws CountryException;
 
     @UpdateOperation
@@ -25,5 +25,8 @@ public interface CountryDAO {
     public abstract List<Country> getCountries(long[] ids) throws CountryException;
 
     public abstract Country getCountryFromLegacy(long id);
+
+    @WriteSingleOperation
+    public abstract Country createGeneratedCountry();
 
 }

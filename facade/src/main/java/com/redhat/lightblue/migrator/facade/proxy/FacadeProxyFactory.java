@@ -44,9 +44,7 @@ public class FacadeProxyFactory {
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)
-    public static @interface WriteSingleOperation {
-        Class<? extends EntityIdExtractor<?>> entityIdExtractorClass();
-    }
+    public static @interface WriteSingleOperation {}
 
     /**
      * Indicates this api performs an update operation. See
@@ -69,19 +67,6 @@ public class FacadeProxyFactory {
             this.daoFacadeBase = daoFacadeBase;
         }
 
-        private HashMap<Class<? extends EntityIdExtractor<?>>, EntityIdExtractor<?>> entityIdExtractors = new HashMap<>();
-
-        private EntityIdExtractor<?> lazyLoadEntityIdExtractor(Class<? extends EntityIdExtractor<?>> clazz) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-            if (entityIdExtractors.containsKey(clazz)) {
-                return entityIdExtractors.get(clazz);
-            }
-
-            EntityIdExtractor<?> extractor = (EntityIdExtractor<?>) clazz.newInstance();
-            entityIdExtractors.put(clazz, extractor);
-
-            return extractor;
-        }
-
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if (method.isAnnotationPresent(ReadOperation.class)) {
@@ -89,13 +74,7 @@ public class FacadeProxyFactory {
             }
 
             if (method.isAnnotationPresent(WriteSingleOperation.class)) {
-                WriteSingleOperation a = method.getAnnotation(WriteSingleOperation.class);
-                // initialize entity extractor
-                @SuppressWarnings("rawtypes")
-                EntityIdExtractor e = lazyLoadEntityIdExtractor(a.entityIdExtractorClass());
-                @SuppressWarnings("unchecked")
-                Object ret = daoFacadeBase.callDAOCreateSingleMethod(e, method.getReturnType(), method.getName(), method.getParameterTypes(), args);
-                return ret;
+                return daoFacadeBase.callDAOCreateSingleMethod(method.getReturnType(), method.getName(), method.getParameterTypes(), args);
             }
 
             if (method.isAnnotationPresent(UpdateOperation.class)) {
